@@ -1,0 +1,587 @@
+#%% Norme Vectori
+def norme_vector(x,n):
+    print('Vectorul dat este: ', x)
+    norma1 = 0;      # norma 1
+    for i in range(0,n):
+        norma1 = norma1 + np.abs(x[i]);
+    #print('Norma 1 este:', norma1)
+    normainf = np.abs(x[0])               # norma infinit
+    for i in range(1, n):
+        if np.abs(x[i]) > normainf:
+            normainf = np.abs(x[i])
+    #print('Norma infinit este:', normainf)
+    norma2 = 0
+    for i in range(0, n):
+        norma2 = norma2 + x[i]**2
+    norma2 = np.sqrt(norma2)
+    #print('norma 2 este: ', norma2)
+    return norma1, norma2, normainf
+
+#%% Norme Matrice
+def norme_matrice(A,n):
+    print('Matricea este:\n', A)
+    norma1A = 0
+    for i in range(n):
+        s = 0
+        for j in range(n):
+            s = s + np.abs(A[i][j])
+        if (s > norma1A):
+            norma1A = s
+    #print('Norma 1 matriceala este: ', norma1A)
+    norma_infA = 0
+    for j in range(n):
+        s = 0
+        for i in range(n):
+            s = s + np.abs(A[i][j])
+        if (s > norma_infA):
+            norma_infA = s
+    #print('Norma infinit matriceala este: ', norma_infA)
+    return norma1A, norma_infA
+
+#%% Factorizare LU
+def factorizareLU(A, n):
+    L = np.eye(n)                         # este factorizarea LU cu L_{ii} = 1
+    U = np.zeros((n,n))
+    ok=True
+    for i in range(n):
+        U[0,i] = A[0,i]
+    if (U[0,0] == 0) :
+        ok=False
+        print("nu se poate face factorizarea LU\n")
+        return
+    for i in range(1,n):
+        L[i,0] = A[i,0]/U[0,0]
+    for i in range(1,n):
+        for j in range(i,n):
+            s = 0
+            for k in range(0,i):
+                s = s + L[i,k] * U[k,j]
+            #print(s)
+            U[i,j] = A[i,j] - s
+        if (i < n-1) :
+            if (U[i,i] == 0):
+                ok=False
+                print("nu se poate face factorizarea LU\n")
+                return
+            for k in range(i+1, n):
+                s=0
+                for l in range(0,i):
+                    s = s + L[k,l]*U[l,i]
+                L[k,i] = (A[k,i] - s)/U[i,i]
+    print(ok)
+    print(L)
+    print(U)
+    return ok, L, U
+
+#%% Factorizare QR
+def factorizareQR(A, n):
+    ok = True
+    Q = np.zeros((n,n))
+    R = np.zeros((n,n))
+    # calulam prima coloana din R si prima coloana din Q
+    d = 0
+    for i in range (0,n):
+        d += A[i,0]**2
+    if (d == 0):
+        print("Nu se poate face descompunerea QR")
+        ok = False
+    else:
+        R[0,0] = np.sqrt(d)
+        for i in range(0,n):
+            Q[i,0] = A[i,0]/R[0,0]
+    if (ok == True):
+        for j in range(1,n):
+            # calculeaza coloana j din R si
+            # coloana j din Q
+            for k in range (0,j):
+                for i in range(0,n):
+                    R[k,j] += Q[i,k]*A[i,j]
+                d = float(0)
+            for k in range(0,n):
+                d += A[k,j]*A[k,j]
+            for k in range(0,j):
+                d -= R[k,j]*R[k,j]
+            if (d <= 0):
+                print("Nu se poate face descompunerea QR")
+                ok = False
+            else:
+                R[j,j] = np.sqrt(d)
+                for k in range(0,n):
+                    Q[k,j] = A[k,j]
+                    for i in range(0,j):
+                        Q[k,j] -= Q[k,i]*R[i,j]
+                        Q[k,j] = Q[k,j]/R[j,j]
+                        # end for j=1,n-1
+    return Q, R, ok
+
+#%% Algoritmul LU
+def algoritmul_LU(M, n):               # --prezentat
+  print("Aplica algoritmul LU")
+  V = np.zeros((n, 1))
+  # err admisilbila
+  epsilon = 1e-10
+  err = 2 * epsilon
+  while err >= epsilon:
+    ok, L, U = factorizareLU(M, n)
+    M1 = U @ L
+    # recalculreaza eroarea
+    err = 0
+    for i in range(n):
+      err = err + (M[i, i] - M1[i, i]) ** 2
+    # V este vectorul de valori proprii
+    # M = M1 este matricea transformata
+    for i in range(n):
+      V[i] = M[i, i]
+    M  = M1
+  return V, M
+
+#%% Algoritmul QR
+def algoritmul_QR(M, n):              # --prezentat
+  print("Aplica algoritmul QR")
+  V = np.zeros((n, 1))
+  # err admisilbila
+  epsilon = 1e-15
+  err = 2 * epsilon
+  it = 0
+  while err >= epsilon:
+    it = it +1
+    Q, R, ok = factorizareQR(M, n)
+    M1 = R @ Q
+    # recalculreaza eroarea
+    err = 0
+    #print("Iteratia:", it)
+    for i in range(n):
+      err = err + (M1[i, i] - M[i, i]) ** 2
+    #print(err)
+    # V este vectorul de valori proprii
+    # M = M1 este matricea transformata
+    for i in range(n):
+      V[i] = M[i, i]
+    M  = M1
+  return V, M
+
+#%% Metoda Rotatiilor
+def MetRotatiilor(A, n):               # --prezentat
+    print('Aplicam metoda rotatiilor pt matricea A:')
+    print(A)
+    V = np.zeros((n,))        # V = vectorul de valori proprii
+    U = np.eye(n)
+    Q = np.eye(n)               # Q = matrice cu coloane vectori proprii corespunzători
+    epsilon = 1e-10
+    err = 2 * epsilon
+    k = 0
+    Ac = np.copy(A)       # copia matricei A
+    while err > epsilon:
+        Amax = np.abs(Ac[0,1])   # alegem p,q ai A[p,q] cel mai mare element nediagonal, în modul
+        p = 0
+        q = 1
+        for i in range(n-1):
+            for j in range(i+1, n):
+                if np.abs(Ac[i,j]) > Amax:
+                    Amax = np.abs(Ac[i,j])
+                    p = i
+                    q = j
+        if Ac[p,p] == Ac[q,q]:    # calculeaza theta
+            theta = np.pi/4
+        else:
+            theta = np.arctan(2*Ac[p,q] / (Ac[p,p] - Ac[q,q]))/2
+        U = np.eye(n)
+        U[p,p] = np.cos(theta)
+        U[q,q] = np.cos(theta)
+        U[p,q] = -np.sin(theta)
+        U[q,p] = np.sin(theta)
+        # actualizeaza matricea de vectori proprii
+        Q = Q @ U
+        B = np.transpose(U) @ Ac @ U
+        err = 0
+        for i in range(n-1):
+          for j in range(i+1, n):
+            err = err + 2 * B[i, j]**2
+        k += 1
+        Ac = B
+    for i in range(n):
+        V[i] = Ac[i, i]
+    return V, Q
+
+#%% Metoda Gauss fara pivotare
+def cond_sup(L, b):
+    for i in range(np.shape(L)[0]):
+        for j in range(0, i):
+            if L[i, j] != 0:
+                print('Matricea sistemului nu este superior triunghiulara')
+                return False
+    for i in range(np.shape(L)[0]):
+        if L[i, i] == 0:
+            print('Matricea sistemului nu este inversabila')
+            return False
+
+def MetSubsDesc(A, b, n):
+    if cond_sup(A, b) == False:
+        return
+    x = np.zeros((n, 1))
+    x[n - 1] = b[n - 1] / A[n - 1][n - 1]
+    for k in range(n - 2, -1, -1, ):
+        x[k] = (b[k] - A[k, k + 1:n] @ x[k + 1:n]) / A[k, k]
+    return x
+
+
+def GaussFP(A, b, n):
+    ok = True
+    # Pas 1
+    Aext = np.hstack((A, b))
+    # Pas 2
+    for k in range(n-1):
+        print('k=', k)
+        if Aext[k, k] == 0:
+            print('Nu pot aplica Gauss fara pivotare')
+            return ok == False
+        for l in range(k + 1, n):
+            m = Aext[l, k] / Aext[k, k]
+            Aext[l, :] = Aext[l, :] - m*Aext[k, :]
+        print(Aext)
+    # Pas 3
+    x = MetSubsDesc(Aext[:, 0:n], Aext[:, n])
+    return x, ok
+
+#%% Polinomul Sturm
+def Pol_Sturm(b, c, i):                 # --prezentat
+    # b si c sunt vectorii care descriu matricea tridiagonala A
+    # calculeaza polinoamele p_0, p_1,..., p_n in vectorul ps
+    # variabila lambda este notata prin variabila simbolica x
+    x = sym.Symbol('x')
+    k = i+1 #k = numarul de polinoame Sturm
+    ps = sym.zeros(k,1)
+    ps[0] = x**0
+    ps[1] = b[0]-x
+    for j in range(2,i+1):
+        ps[j] = (b[j-1]-x)*ps[j-1]-c[j-2]**2*ps[j-2]
+    ps = sym.expand(ps)
+    #print("Polinoamele Sturm pentru i=", i, "sunt \n", ps)
+    #ps0=ps.subs(x,0)
+    #print(ps0)
+    T = np.abs(b[0])+np.abs(c[0]) # calculam in T norma infinit matricei A
+    for r in range(1,i-1):
+        aux = np.abs(c[r-1])+np.abs(b[r])+np.abs(c[r])
+        if aux > T:
+            T = aux
+    aux = np.abs(c[i-2])+np.abs(b[i-1])
+    if aux > T:
+        T = aux
+    #print("Intervalul de lungime ",T)
+    N = 50
+    x_graf = np.linspace(-T, T, N)
+    #print(x_graf)                   # x_graf este diviziune echidistanta a intervalului [-T, T]
+    for n in range (0, k):
+                                    # calculam valori pentru polinomul p_n si il reprezentam grafic
+        y_graf = np.zeros(N)
+        #print(" Calculeaza Polinomul ", n)
+        #print(ps[n])
+        for j in range (0, N):
+            y_graf[j] = ps[n].subs(x, x_graf[j])
+        #print("Polinomul ", n)
+        #print(y_graf)
+        #plt.plot(x_graf, y_graf) #, '*')
+    #plt.show()
+    return ps
+
+#%% Numărul de valori proprii mai mici decât m
+def N(n, A, j, m):                                  # --prezentat
+  # n = dimensiunea matricei
+  # b = vectorul elementelor diagonalei
+  # c = vectorul elementelor codiagonalei
+  # j = nr de val proprii este dat de polinomul Sturm p_j
+           # adica pol caracteristic pt matricea A_j
+  # m = limita pana la care numaram val proprii
+  # extragem elementele diagonalei principale și codiagonalei
+  b = np.diag(A)
+  c = np.diag(A, k=1)
+  pol_S = np.zeros(n+1)
+  #x = sym.Symbol('x')
+  pol_S = Pol_Sturm(b, c, j)
+  #print('Polinoamele Sturm sunt: ')
+  #print(pol_S)
+  # E = vectorul semnelor polinoamelor in m, cu 1 pt semn pozitiv si -1 pt semn negativ
+  E = np.ones(j+1)
+  val_pol_S = np.zeros(j+1)
+  for i in range(1, j+1):
+    val_pol_S[i] = pol_S[i].subs(x, float(m))
+    #print(val_pol_S)
+    if val_pol_S[i] < 0:
+      E[i] = -1
+    if val_pol_S[i] == 0:
+      E[i] = E[i-1]
+# de adaugat calcul N - nr de valori proprii mai mici decat m    --prezentat
+  nr_val = 0
+  nr_val_mari = 0
+  #print(f"Vectorul semnelor polinoamelor in {m}: {E}")
+  for i in range(1, j+1):
+    if E[i-1] == E[i]:
+      nr_val_mari = nr_val_mari + 1
+    else:
+      nr_val = nr_val + 1
+  return nr_val, nr_val_mari
+
+#%% Metoda Bisectiei           --prezentat
+def metoda_bisectiei(A, n, eps):
+  norma1A, norma_infA = norme_matrice(A, n)
+  vector_valproprii = np.zeros((n, 1))   # valori proprii
+  a0 = -norma_infA
+  b0 = norma_infA
+  for i in range(1, n+1):
+    err =  2*eps
+    while err > eps:
+      g0 = (a0+b0) / 2
+      nr_val, nr_val_mari = N(n, A, n, g0)            #g0 = gamma_0
+      if nr_val >= i:
+          a1 = a0
+          b1 = g0
+      else:
+          a1 = g0
+          b1 = b0
+      err = b1 - a1
+      a0 = a1
+      b0 = b1
+    vector_valproprii[i-1] = (a0 + b0) / 2
+    a0 = b0
+    b0 = norma_infA
+  return vector_valproprii
+
+
+#%% Algoritmul Krilov
+
+def alg_Krilov(n, A, y):
+  ok = False
+  p = np.zeros(n)
+  B = np.zeros((n, n))
+  B[:, n-1] = y
+  Yn = np.zeros(n)
+  while not ok:
+    for k in range(1, n):
+      Y = A @ B[:, n-k]
+      #print(Y)
+      B[:, n-k-1] = Y
+    print("Matricea B este:\n ", B)
+    Yn = A @ B[:, 0]                     #B[:, n+1] = A @ B[:, n]
+    print("Yn este: ", Yn)
+    detB = np.linalg.det(B)
+    if detB != 0:
+      ok = True
+      B_inv = np.linalg.inv(B)
+      p = B_inv @ Yn
+  return ok, p
+
+
+
+#%% Algoritmul Danilevski
+
+def alg_Danilevski(n, A):
+  C = np.zeros((n, n))
+  B = np.copy(A)
+  for k in range(0, n-1):
+    S = np.eye((n))
+    S_i = np.eye((n))
+    for j in range(0, n):
+      if j == n-k-2:
+        S[n-k-2, j] = 1 / B[n-k-1, n-k-2]
+      else:
+        S[n-k-2, j] = -B[n-k-1, j] / B[n-k-1, n-k-2]
+      S_i[n-k-2, j] = B[n-k-1, j]
+    print("S este: ")
+    print(S)
+    print("S_i este: ")
+    print(S_i)
+    C = np.dot(S_i, np.dot(B, S))
+    B = np.copy(C)
+  return C
+
+
+
+
+#%% Algoritmul Givens    + aplicare la metoda bisectiei
+
+def alg_Givens(n, A):
+  A0 = np.copy(A)
+  A1 = np.zeros(len(A))
+  k = 0
+
+  N = (n-2)*(n-1)/2
+  for i in range(n-2):
+    for j in range(i+2, n):
+      k = k + 1
+      U = np.eye((n))
+      co = A0[i, i+1] / np.sqrt(A0[i, i+1]**2 + A0[i, j]**2)
+      si = -A0[i, j] / np.sqrt(A0[i, i+1]**2 + A0[i, j]**2)
+      print('cos = ', co)
+      print('sin = ', si)
+      U[i+1, i+1] = co
+      U[j, j] = co
+      U[i+1, j] = si
+      U[j, i+1] = -si
+      print('\nMatricea U este:\n', U)
+      A1 = np.dot(np.transpose(U), np.dot(A0, U))
+      A0 = A1
+  if k == N:
+    print("yes\n")
+  return A1
+
+
+#%% Calcul si grafic aproximatii succesive
+
+def aproximatii_succesive(k):  
+    print("Calcul si grafic aproximatii succesive")
+    t = sym.Symbol('t')
+    x = sym.Symbol('x')
+    s = sym.Symbol('s')
+    # f = x * t**0, functia f din problema Cauchy
+    f = 2 * t * x
+    t0 = float(input("t0 = "))
+    x0 = float(input("x0 = "))
+    phi = sym.zeros(k)
+    phi[0] = x0 * t**0
+    for n in range(0, k):
+        aux1 = phi[n].subs(t, s)  
+        aux2 = f.subs(x, aux1)   
+        aux3 = aux2.subs(t, s)   
+        phi[n + 1] = x0 + sym.integrate(aux3, (s, t0, t))
+    print(f"Aproximatiile sunt: {phi}")
+    T = float(input("Lungime interval T = "))
+    n = 50
+    tg = np.linspace(t0, t0+T, n) 
+    # solutia = np.exp(tg)         # solutia exacta pt pb 1
+    # plt.plot(tg, solutia, 'r')
+    solutia = np.zeros((n, 1))     # solutia exacta pt pb 2
+    for i in range(n):
+      solutia[i] = np.exp(tg[i]**2)
+    #solutia = np.exp(tg)
+    plt.plot(tg, solutia, 'r')
+    for n in range(0, k+1):
+        xg = np.zeros(n)
+        for i in range(0, n):
+            xg[i] = phi[n].subs(t, tg[i])
+        plt.plot(tg, xg, '*')
+    plt.show()
+
+
+#%% Aproximare cu Metoda Euler explicita
+
+def algoritmul_Euler(k):       # + reprezentare grafica
+  print("Aproximare cu Metoda Euler explicita")
+  t = sym.Symbol('t')
+  x = sym.Symbol('x')
+  f = x + t   # problema Cauchy
+  print(f"Problema Cauchy : f = {f}")
+  # f = x*t**0 # functia f specifica ecuatiei
+  t0 = float(input("t0 ="))
+  x0 = float(input("x0 ="))
+  #x0 = 2
+  #t0 = 0
+  sol_ex = -t - 1 + 3*sym.exp(t)
+  T = float(input("Lungime interval pentru aproximații numerice T = "))
+  M = 50 
+  tg = np.linspace(t0, t0+T, M)
+  solutia = np.zeros(M)
+  for i in range (0,M):
+      solutia[i] = sol_ex.subs(t, tg[i])
+  plt.plot(tg, solutia,'r', label = f'solutia $\phi({t})$')
+  N = [5, 10, 20, 50]
+  for i in range (0, k):
+      tn = np.linspace(t0, t0+T, N[i])
+      h = T / (N[i]-1)
+      xn = np.zeros(N[i])
+      xn[0] = x0
+      for n in range (0, N[i]-1):
+          aux1 = f.subs(t, tn[n])
+          aux = aux1.subs(x, xn[n])
+          xn[n+1] = xn[n] + h*aux
+      plt.plot(tn, xn,'*', label = f'aprox N={N[i]}')
+  plt.legend()
+  plt.show()
+
+
+#%% Metoda Taylor
+
+def metoda_Taylor_2()    :
+    print("Metoda Taylor")
+    t = sym.Symbol('t')
+    x = sym.Symbol('x')
+    f = x + t  # problema Cauchy
+    print(f"Problema Cauchy : f = {f}")
+    # f = x*t**0              
+    #t0 = float(input("t0 ="))
+    #x0 = float(input("x0 ="))
+    x0 = 2
+    t0 = 0
+    sol_ex = -t - 1 + 3*sym.exp(t)
+    T = float(input("Lungime interval T = "))
+    n = 10
+    h = T / n
+    xn = np.zeros(n+1)
+    xn[0] = x0
+    M = 10  
+    tg = np.linspace(t0, t0+T, M) 
+    solutia = np.zeros(M)
+    for i in range (0,M):
+        solutia[i] = sol_ex.subs(t, tg[i])
+    plt.plot(tg, solutia,'r', label = f'solutia $\phi({t})$')
+    df = sym.diff(f, x) * f
+    g2 = sym.diff(f, t) + df
+    phi = f + h/2 * (sym.simplify(g2))
+    tn = np.linspace(t0, t0+T, n+1)
+    for n in range (0, n):
+        aux1 = phi.subs(t, tn[n])
+        aux2 = aux1.subs(x, xn[n])
+        xn[n+1] = xn[n] + h * aux2
+    plt.plot(tn, xn, "*", label = f'Aproximarea soluției pentru n = {n}')
+    plt.legend()
+    plt.show()
+    return tn, xn 
+
+#%% Metoda Runge-Kutta
+
+def metoda_Runge_Kutta():
+    print("Metoda Runge-Kutta")
+    t = sym.Symbol('t')
+    x = sym.Symbol('x')
+    f = x + t    # problema Cauchy
+    print(f"Problema Cauchy : f = {f}")
+    #t0 = float(input("t0 ="))
+    #x0 = float(input("x0 ="))
+    x0 = 2
+    t0 = 0
+    sol_ex = -t - 1 + 3*sym.exp(t)
+    T = float(input("Lungime interval T = "))
+    n = 10
+    h = T / n
+    tn = np.zeros((n+1, 1))
+    tn[0] = t0
+    for n in range(1, n+1):
+        tn[n] = t0 + h*n
+    xn = np.zeros(n+1)
+    sol = np.zeros(n+1)
+    xn[0] = x0
+    sol[0] = x0
+    for n in range(0, n):
+        tn1 = float(tn[n] + h*0)
+        tn2 = float(tn[n] + h/2)
+        tn3 = float(tn[n] + h/2)
+        tn4 = float(tn[n] + h)
+
+        xn1 = float(xn[n] + h*0)
+        xn2 = float(xn[n] + h * f.subs([(t, tn1), (x, xn1)]) / 2)
+        xn3 = float(xn[n] + h * f.subs([(t, tn2), (x, xn2)]) / 2)
+        xn4 = float(xn[n] + h * f.subs([(t, tn3), (x, xn3)]))
+
+        xn[n+1] = xn[n] + h / 6 *(f.subs([(t, tn1),(x, xn1)]) + 2*f.subs([(t, tn2),(x, xn2)]) + 2*f.subs([(t, tn3),(x, xn3)]) + f.subs([(t, tn4),(x, xn4)]))
+        sol[n+1] = float(sol_ex.subs(t, float(tn[n+1])))
+    print(tn)
+    print(xn)
+    print(sol)
+    M = 10       
+    tg = np.linspace(t0, t0+T, M) 
+    solutia = np.zeros(M)
+    for i in range (0,M):
+        solutia[i] = sol_ex.subs(t, tg[i])
+    plt.plot(tg, solutia,'r', label = f'solutia $\phi({t})$')
+    plt.plot(tn, xn, "*", label = 'Aproximarea soluției pentru n = 10')
+    plt.legend()
+    plt.show()
