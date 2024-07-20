@@ -1,0 +1,937 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Feb 28 12:26:16 2024
+
+@author: Student
+"""
+
+ # Functii din biblioteci
+import numpy as np
+import sympy as sym
+
+# de adaugat pentru grafice in PYTHON
+import matplotlib.pyplot as plt
+plt.style.use('ggplot')
+
+from math import sqrt
+
+#%matplotlib inline - pentru figura inline sau qt, in fereastra
+
+# functii ale utilizatorului
+
+# *****************************
+# Factorizare LU
+# ****************************
+def factorizareLU(A, n):    
+    L = np.eye(n)
+    U = np.zeros((n,n))
+    # este factorizarea LU cu L_{ii} = 1
+    ok=True
+    for i in range(n):
+        U[0,i] = A[0,i]
+    if (U[0,0] == 0) :
+        ok=False
+        print("nu se poate face factorizarea LU\n")
+        return
+    for i in range(1,n):
+        L[i,0] = A[i,0]/U[0,0]
+   
+    for i in range(1,n):
+        for j in range(i,n):
+            s = 0
+            for k in range(0,i):
+                s = s + L[i,k] * U[k,j]
+            #print(s)
+            U[i,j] = A[i,j] - s
+        if (i < n-1) :
+            if (U[i,i] == 0):
+                ok=False
+                print("nu se poate face factorizarea LU\n")
+                return
+            for k in range(i+1, n):
+                s=0
+                for l in range(0,i):
+                    s = s + L[k,l]*U[l,i]    
+                L[k,i] = (A[k,i] - s)/U[i,i]
+   
+    print(ok)
+    print(L)
+    print(U)
+   
+    return ok, L, U
+
+# *****************************
+# norme vectori
+# **************************** 
+def norme_vector(x,n):
+    print('Vectorul dat este: ')
+    print(x)
+    # calcul norma 1
+    norma1=0;
+    for i in range(0,n):
+        norma1=norma1+np.abs(x[i]);
+    print("Norma 1 este: ")    
+    print(norma1) 
+    # calcul norma infinit 
+    norma_infinit=np.abs(x[0])
+    for i in range(1,n):
+        if (np.abs(x[i]) > norma_infinit):
+           norma_infinit=np.abs(x[i])
+    print("Norma infinit este: ") 
+    print(norma_infinit) 
+    norma2=0
+    for i in range(0,n):
+        norma2=norma2+x[i]**2
+    norma2=sqrt(norma2) 
+    print('Norma 2 este: ')
+    print(norma2)
+
+# *****************************
+# norme matrice
+# **************************** 
+def norme_matrice(A,n):
+    print('Matricea este:')
+    print(A)
+    # calcul norma matriceala 1
+    norma1A=0
+    for j in range(0,n):
+        S=0
+        for i in range (0,n):
+            S=S+np.abs(A[i][j])
+        if (S > norma1A):
+            norma1A=S
+    print('Norma 1 matriceala este:')       
+    print(norma1A)
+    # calcul norma infinit
+    norma_infinit_A=0
+    for i in range(0,n):
+        S=0     
+        for J in range (0,n):
+             S=S+np.abs(A[i][j])
+        if (S > norma_infinit_A):
+            norma_infinit_A=S
+    print('Norma infinit matriceala este:')       
+    print(norma_infinit_A)
+    return norma_infinit_A
+    
+# *****************************
+# Factorizare QR
+# **************************** 
+def factorizareQR(A, n):
+    Q = np.zeros((n,n))
+    R = np.zeros((n,n))
+    ok = True
+    s = 0
+    for i in range(0,n):
+        s = s + A[i][0]**2
+    R[0][0] = np.sqrt(s)
+    if (R[0][0] == 0):
+        ok=False
+        print("Nu exista factorizare QR")
+        return
+    for j in range(0,n):
+        Q[j][0] = A[j][0]/R[0][0]
+    for j in range(1,n):
+        for k in range(0,j):
+            s = 0
+            for i in range(0,n):
+                s= s + A[i][j]*Q[i][k]
+            R[k][j] = s
+        d = 0
+        for i in range(0,n):
+            d = d + A[i][j]**2
+        for i in range(0,j):
+            d = d - R[i][j]**2
+        if (d <=0):
+            ok=False
+            print("Nu esxita factorizare QR")
+            return
+        R[j][j] = np.sqrt(d)
+        for i in range(0,n):
+            s = 0
+            for k in range(0,j):
+                s = s + Q[i][k]*R[k][j]
+            Q[i][j] = (A[i][j] - s)/R[j][j]
+   # print(ok)
+   # print(Q)
+   # print(R)
+    return ok, Q, R 
+
+# **********************************************
+# Substitutie descendenta pentru sisteme liniare
+# **********************************************
+def substitutie_descendenta(L, b):
+    n=np.shape(L)[1]
+    x = float('nan') * np.ones((np.shape(L)[1], 1))
+    if np.shape(L)[0]!=np.shape(L)[1]:
+        print("Matricea nu este patratica")
+        return x
+    else:
+        p=1
+        for i in range(np.shape(L)[0]):
+            p*=L[i, i]
+        if p==0:
+            print("Matricea nu e inversabila")
+            return x
+    for i in range(np.shape(L)[0]):
+        for j in range(i):
+            if L[i, j]!=0:
+                print("Matricea nu este superior triunghiulara")
+                return x
+    if np.shape(L)[0]!=np.shape(b)[0]:
+        print("Matricea L si vectorul b nu sunt compatibili")
+        return x
+    x[n-1]=L[n-1, n-1]/b[n-1]
+    for i in range(np.shape(L)[0]-1, -1, -1):
+        suma=0
+        for j in range(i+1,n):
+            suma+=L[i, j]*x[j]
+        x[i]=(b[i]-suma)/L[i, i]
+    return x
+
+# ********************************
+# Metoda Gauss cu pivotare totala
+# ******************************** 
+def Metoda_Gauss(n,U, b):
+    X=np.zeros((n,1))
+    if np.shape(U)[0]!=np.shape(U)[1]:
+        print("Matricea U nu este patratica")
+        ok=0
+        return 0, X
+    if np.shape(U)[0] != np.shape(b)[0]:
+        print("U si b nu sunt compatibili")
+        ok=0
+        return 0, X
+    for k in range(0, np.shape(U)[0]):
+        D=np.ones((k, k))
+        for i in range(k):
+            for j in range(k):
+                D[i,j]=U[i,j]
+        if abs(np.linalg.det(D))<=10**(-14):
+            print("Matricea nu admite MEGPT")
+            ok=0
+            return 0, X
+    if abs(np.linalg.det(U))<=10**(-14):
+        print("A nu este inversabila")
+        ok=0
+        return 0, X
+    n = np.shape(U)[0]
+    #Q este matricea permutare
+    Q = np.identity(n)
+    for k in range(0, n-1):
+        maxim=0
+        for i in range(k, n):
+            for j in range(k, n):
+                if abs(U[i, j])>maxim:
+                    maxim=abs(U[i, j])
+                    index1=i
+                    index2=j
+        l=index1
+        m=index2
+        for i in range(0, n):
+            U[k, i], U[l, i]=U[l, i], U[k, i]
+        b[k,0], b[l,0]=b[l,0], b[k,0]
+        for i in range(0, n):
+            U[i, k], U[i, m]=U[i, m], U[i, k]
+            Q[i, k], Q[i, m]=Q[i, m], Q[i, k]
+        for i in range(k+1, n):
+            m=U[i, k]/U[k, k]
+            b[i]=b[i]-m*b[k]
+            for j in range(k+1, n):
+                U[i, j]=U[i, j]-m*U[k, j]
+            U[i, k] = 0
+        #Afisare matricea transformata U
+    print("Matricea transformata:", U)
+    X=Q @ substitutie_descendenta(U, b)
+    ok=1
+    return ok,X
+
+
+# *****************************
+# Metoda rotatiilor
+# ****************************     
+
+def metoda_rotatiilor(n,A):
+    print('Aplicam metoda rotatiilor pentru matricea:')
+    print(A)
+    V=np.zeros((n,1))
+    Q=np.eye(n,n)
+    
+    # de adaugat !!!!!!!
+    
+    return V, Q
+     
+# *****************************
+# Algoritmul LU
+# ****************************     
+
+def algoritm_LU(n,M):
+    print("Aplica algoritmul LU")
+    # eroarea admisibila
+    eps=1e-10
+    err=2*eps
+    while err >= eps:
+        L, U=factorizareLU(M, n)
+        M1=U @ L
+        # recalculeaza eroarea 
+        err=0
+        for i in range(0,n):
+            err=err+(M[i][i]-M1[i][i])**2
+        M=M1
+    # V = vectorul de valori proprii
+    # M=M1 = matricea tranformata 
+    V=np.zeros((n,1))
+    for i in range(0,n):
+        V[i][i]=M[i][i]
+    return V, M
+     
+
+# *****************************
+# Algoritmul QR
+# ****************************     
+
+def algoritm_QR(n,M):
+    print('Aplicam algoritmul QR pentru matricea:')
+    print(M)
+    V=np.zeros((n,1)) # vectorul de valori proprii
+    # eps = eroare admisibila
+    eps=1e-10
+    err=2*eps
+    it=0 # numara iteratiile
+    while err > eps:
+        it=it+1
+        ok, Q, R = factorizareQR(M, n)
+        M1=R @ Q
+        print("iteratia ",it)
+        print("Matricea obtinuta este ")
+        print(M1)
+        # recalculeaza eroarea
+        err=0
+        for i in range(0,n):
+            err=err+(M[i][i]-M1[i][i])**2
+        err=np.sqrt(err)    
+        M=M1
+        # end while err
+    for i in range(0,n):
+        V[i]=M[i][i]
+    print("Matricea transformata este:")    
+    print(M)
+    print("Valorile proprii sunt")
+    print(V)    
+    return V
+
+# *****************************
+# Polinoame Sturm
+# ****************************     
+def Pol_Sturm(b,c,i):
+    # b si c sunt vectorii care descriu matricea tridiagonala A
+    # calculeaza polinoamele p_0, p_1,..., p_n in vectorul ps 
+    # variabila lambda este notata prin variabila simbolica x
+    x=sym.Symbol('x')
+    k=i+1 #k = numarul de polinoame Sturm
+    ps=sym.zeros(k,1)
+    ps[0]=x**0
+    ps[1]=b[0]-x
+    for j in range(2,i+1):
+        ps[j]=(b[j-1]-x)*ps[j-1]-c[j-2]**2*ps[j-2]
+    ps=sym.expand(ps)
+    print("Polinoamele Sturm pentru i=", i, "sunt \n", ps)
+    #ps0=ps.subs(x,0)
+    #print(ps0)
+    T=np.abs(b[0])+np.abs(c[0]) # calculam in T norma infinit matricei A
+    for r in range(1,i-1):
+        aux=np.abs(c[r-1])+np.abs(b[r])+np.abs(c[r])
+        if aux > T:
+            T=aux
+    aux=np.abs(c[i-2])+np.abs(b[i-1])
+    if aux > T:
+        T=aux
+    print("Intervalul de lungime ",2*T)    
+    N=50
+    xg=np.linspace(-T, T, N)
+    print(xg) # xg este diviziune echidistanta a intervalului [-T, T]
+    for n in range (0, k):
+        # calculam valori in yg pentru polinomul p_n si il reprezentam grafic
+        yg=np.zeros(N)
+        print(" Calculeaza Polinomul ", n)
+        print(ps[n])
+        for j in range (0, N):
+            yg[j]=ps[n].subs(x,float(xg[j]))
+        print("Polinomul ", n)    
+        print(yg)
+        plt.plot(xg, yg) #, '*')
+    plt.show()       
+    return ps
+
+# *****************************
+# Polinoame Sturm - doar calcul
+# ****************************     
+def Pol_Sturm_calcul(b,c,i):
+    # b si c sunt vectorii care descriu matricea tridiagonala A
+    # calculeaza polinoamele /lkp_0, p_1,..., p_n in vectorul ps 
+    # variabila lambda este notata prin variabila simbolica x
+    x=sym.Symbol('x')
+    k=i+1 #k = numarul de polinoame Sturm
+    ps=sym.zeros(k,1)
+    ps[0]=x**0
+    ps[1]=b[0]-x
+    for j in range(2,i+1):
+        ps[j]=(b[j-1]-x)*ps[j-1]-c[j-2]**2*ps[j-2]
+    ps=sym.expand(ps)
+    #print("Polinoamele Sturm pentru i=", i, "sunt \n", ps)
+    return ps
+
+# **************************************************************
+# Functia N de numarare a valorilor proprii mai mici decat m dat
+# **************************************************************
+def N(n,b,c,j,m):
+# n = dimensiune matrice
+# b = vectorul elementelor de pe diagonala principalaaz"DS
+# c = vectorul elementelor codiagonalelor
+# j = numarul de valori proprii este dat pentru polinomul Strum p_j, 
+#     adica, polinomul caracteristic pentru matricea A_j
+# m = limita pana la care numaram valorile proprii
+
+    epsilon=1e-10 # inlocuieste pe zero
+    x=sym.Symbol('x')   
+    ps=Pol_Sturm_calcul(b,c,j)
+    #print("Polinoamele Sturm sunt:")
+    #print(ps)
+    # E = vectorul semnelor polinoamelor in m
+    # E[i]=1, daca p_i(m) are pentru semn pozitiv
+    # E[i]=-1, daca p_i(m) are pentru semn negativ
+    # daca p_i(m)=0, atunci E[i]=E[i-1]
+    E=np.ones((j+1,1))
+    val_ps=np.zeros((j+1,1))
+    for i in range(1,j+1): # calculeaza vectorul de semne
+        val_ps[i]=ps[i].subs(x,float(m))
+        if val_ps[i] < 0:
+           E[i]=-1     
+        if np.abs(val_ps[i]) <=epsilon: # atentie la comparatia cu zero; 
+           # consideram zero, daca valoarea se afla in vecinatatea 
+           # (-epsilon,epsilon)
+           E[i]=E[i-1]
+    #print("E",E)       
+    # de adaugat calcul numarului, nv, de valori proprii mai mici decat m 
+    nv=0; # nv este numarul de valori proprii pentru A_j, mai mici decat m
+    mv=0; # mv este numarul de valori proprii pentru A_j, mai mari decat m
+    for i in range(0,j):
+        if (E[i] != E[i+1]):
+            nv=nv+1
+        else:
+            mv=mv+1
+    if (nv+mv != j):
+        print("Eroare calcul functie N")
+    return nv,mv       
+    
+
+# ****************************
+# Metoda bisectiei
+# ****************************  
+def metoda_bisectiei(n,b,c,A,epsilon):
+    vect_valori=np.zeros((n+1,1))
+    nA=norme_matrice(A,n)
+    a0=-nA
+    b0=nA
+    for i in range(1,n+1):
+        er=2*epsilon
+        k=0 # k numara cate iteratii 
+            # pentru a aprox a i-a valoare proprie
+        while (er>epsilon):
+            g0=(a0+b0)/2
+            k=k+1
+            nv,mv=N(n, b, c, n, g0)            
+            if nv >= i:
+                a1=a0
+                b1=g0
+            else:
+                a1=g0
+                b1=b0
+            er=b1-a1
+            a0=a1
+            b0=b1 # se termina while pentru a i-a valoare proprie
+        vect_valori[i]=(a0+b0)/2
+        print("A ",i,"-a valoare proprie este aprox. ",vect_valori[i])
+        print("in ",k,"iteratii")
+        a0=b0
+        b0=nA # end for dupa i
+    return vect_valori
+
+# ****************************
+# Metoda Givens + aplicare la metoda bisectiei
+# ****************************  
+
+# !!!!! de adaugat  TEMA
+  
+# ****************************
+# Metoda Danilevski
+# ****************************  
+
+def alg_Danilevski(n, A):
+  C = np.zeros((n, n))
+  B = np.copy(A)
+  for k in range(0, n-1):
+    S = np.eye((n))
+    S_i = np.eye((n))
+    for j in range(0, n):
+      if j == n-k-2:
+        S[n-k-2, j] = 1 / B[n-k-1, n-k-2]
+      else:
+        S[n-k-2, j] = -B[n-k-1, j] / B[n-k-1, n-k-2]
+      S_i[n-k-2, j] = B[n-k-1, j]
+    print("S este: ")
+    print(S)
+    print("S_i este: ")
+    print(S_i)
+    C = np.dot(S_i, np.dot(B, S))
+    B = np.copy(C)
+  return C
+
+# ****************************
+# Metoda Krilov
+# ****************************  
+
+def alg_Krilov(n, A):
+  ok = False
+  p = np.zeros(n)
+  B = np.zeros((n, n))  
+  # alegem pentru y unul dintre vectorii 
+  # bazei canonice din R^n
+  Baza=np.eye(n)
+  ind=-1 # ind ne spune indecele vectorului din baza canonica 
+         # care este folosit ca y_0
+  while not ok:
+    ind=ind+1
+    B[:, n-1] = Baza[:,ind]
+    Yn = np.zeros(n)
+    for k in range(1, n):
+      Y = A @ B[:, n-k]
+      #print(Y)
+      B[:, n-k-1] = Y
+    print("Matricea B este:\n ", B)
+    Yn = A @ B[:, 0]                     #B[:, n+1] = A @ B[:, n]
+    print("Yn este: ", Yn)
+    detB = np.linalg.det(B)
+    if detB != 0:
+      ok = True
+      B_inv = np.linalg.inv(B)
+      p = B_inv @ Yn
+  return ok, p
+
+# ****************************
+# Aproximatii succesive
+# ****************************  
+
+def aproximatii_succesive(k):
+    print("Calcul si grafic aproximatii succesive")
+    # k = numar de aproximari
+    t=sym.Symbol('t')
+    x=sym.Symbol('x')
+    s=sym.Symbol('s')
+    # functia f din problema Cauchy    
+    # f=x*t**0 # pentru prob 1
+    f=2*t*x # pentru prob 2
+    t0=float(input("t0="))
+    x0=float(input("x0="))
+    phi=sym.zeros(k)
+    phi[0]=x0*t**0
+    for n in range(0,k):
+        aux1=phi[n].subs(t,s) # substituie pe t cu s in phi_n
+        aux2=f.subs(x,aux1) # substituie pe x cu aux1 
+        aux3=aux2.subs(t,s) # substituie pe t cu s in aux2
+        phi[n+1]=x0+sym.integrate(aux3,(s,t0,t))
+    print("Aproximatiile sunt: ")    
+    print(phi)
+    # Reprezentarea grafica a aproximatiilor si 
+    # solutiei exacte pentru f(x)=x: phi(t)=exp(t)
+    T=float(input("Lungime interval T= "))
+    N=50 # numar de puncte in [t0,t0+T] pentru reprezentare grafica
+    tg=np.linspace(t0,t0+T,N) # o diviziune echidistanta cu N puncte
+                              # in [t0,t0+T]
+    ## solutia exacta pentru prob 1                              
+    # solutia=np.exp(tg) 
+    # plt.plot(tg,solutia,'r')
+    
+    ## solutia exacta pentru prob 2
+    solutia=np.zeros((N,1))
+    for i in range(0,N):
+        solutia[i]=np.exp(tg[i]**2) 
+    plt.plot(tg,solutia,'r')
+    
+    ## reprezentare aproximatii succesive
+    for n in range(0,k+1):
+        xg=np.zeros(N)
+        for i in range(0,N):
+            xg[i]=phi[n].subs(t,tg[i])
+        plt.plot(tg,xg,'*')
+    plt.show()
+            
+# ****************************
+# Metoda Euler explicita
+# ****************************  
+def metoda_Euler_explicita():
+    print("Aproximare cu Metoda Euler explicita")
+    
+    # de adaugat ca tema !!!!!!!!!!
+    
+# ****************************
+# Metoda Taylor, comparatiue cu metoda Euler explicita
+# ****************************      
+def metoda_Taylor_2()    :
+    print("Metoda Taylor")
+    
+    # de adaugat ca tema !!!!!!!!!!
+    
+# ****************************
+# Metoda Runge-Kutta clasica
+# ****************************      
+def metoda_Runge_Kutta():
+    print("Metoda Runge-Kutta")
+    
+    # de adaugat ca tema !!!!!!!!!!    
+    
+# ****************************
+# Verificare metoda Runge-Kutta clasica
+# ****************************       
+def  verificare_RK_p_p_prim():
+    print("Verificare metoda Runge-Kutta")
+    
+    # de adaugat ca tema !!!!!!!!!!    
+        
+# *************************************************
+# Calculul coeficientilor in metoda Adams-Bashforth
+# ************************************************         
+def coeficienti_metoda_Adams_Bashforth():    
+    print('Calculul coeficientilor in metoda Adams-Bashforth')
+    
+    # de adaugat ca tema !!!!!!!!!!    
+    
+
+#*********************************************    
+#*********************************************
+#functia principala considerata ca un script  
+#*********************************************
+#*********************************************
+#def Programe_Analiza_Numerica():
+#clear() 
+op = 1
+while op != 0:
+    print('****************************')
+    print('Programe Analiza Numerica:')
+    print('****************************')
+    print('1. Functii de lucru (norme, factorizari, metoda pentru sisteme liniare ')
+    print('2. Metode de aproximare a valorilor si vectorilor proprii ')
+    print('3. Metode de aproximare a solutiilor problemelor Cauchy')  
+    print('0. Incheiere program')
+    op = int(input('Optiune program principal: '))
+    # submeniu 1: functii de lucru (norme, factorizari, metoda pentru sisteme liniare)
+    if op == 1:
+        op1=1;
+        while op1 != 0:
+            print('********************************************************')  
+            print('1. Functii de lucru')
+            print('********************************************************')
+            print('    1.1. Calcul norme vectoriale si matriciale')
+            print('    1.2. Factorizarera LU')
+            print('    1.3. Factorizarera QR')
+            print('    1.4. Metoda Gauss cu pivotare totala')
+            print('    1.0. Incheiere submeniu 1')
+            op1=int(input("Optiune pentru submeniu 1: "))
+            if op1 == 1:
+                print('Calcul norme')
+                # citim vector x de dim n
+                n=int(input('Dimensiune vector n = '))
+                x=np.zeros((n,1))
+                print('Elementele vectorului sunt')
+                for i in range(0,n):
+                      x[i] = float(input())
+                norme_vector(x,n)
+                
+                # citim matrice A patratica de ordin m
+                m=int(input('Dimensiune vector m = '))
+                A=np.zeros((m,m))
+                for i in range(0,m):
+                    for j in range(0,m):
+                        A[i][j]=float(input())
+                norme_matrice(A,m)
+                
+            elif op1 == 2:
+                print('Factorizare LU')
+                n = int(input('dimensiune matrice: '))
+                A = np.zeros((n,n))
+                print('elementele matricei sunt')
+                for i in range(0,n):
+                    for j in range(0,n):
+                      A[i][j] = float(input())
+               
+                print('matricea A este')
+                print(A)
+                ok,L,U=factorizareLU(A, n)
+                print('la intoarcere din functie avem ')
+                if ok == True:
+                    print('Matricea L este:')
+                    print(L)
+                    print('Matricea U este:')
+                    print(U)
+                
+            elif op1 == 3:
+                print('Factorizare QR')
+                n = int(input('dimensiune matrice: '))
+                A = np.zeros((n,n))
+                print('elementele matricei sunt')
+                for i in range(0,n):
+                    for j in range(0,n):
+                      A[i][j] = float(input())
+               
+                print('matricea A este')
+                print(A)
+                ok,Q,R=factorizareQR(A, n)
+                print('la intoarcere din functie avem ')
+                if ok == True: 
+                    print('Matricea q este:')
+                    print(Q)
+                    print('Matricea R este:')
+                    print(R)
+                    
+            elif op1 == 4:
+                print('Metoda Gauss')    
+                n = int(input('Dimensiune matrice sistem: '))
+                A = np.zeros((n,n))
+                print('Elementele matricei sunt:')
+                for i in range(0,n):
+                    for j in range(0,n):
+                      A[i][j] = float(input())
+                print("Elementele vectorului termen liber sunt:")      
+                B=np.zeros((n,1))
+                for i in range(0,n):
+                    B[i][0] = float(input())
+                print('Matricea A a sistemului este:')
+                print(A)
+                print("Vectorul termen liber B este:")
+                print(B)
+                ok,X=Metoda_Gauss(n,A,B)
+                # ok = True, daca sistemul are solutie unica (Cramer)
+                # X = vectorul solutie
+                if ok == True:
+                    print('Solutia sistemului este:')
+                    print(X)
+                else:
+                    print('Sistemul nu are solutie unica')
+                        
+            elif op1 == 0:
+                  print('Incheiere submeniu 1')
+            else:
+                  print('Optiune invalida!')         
+                
+    # Submeniu 2: Metode de aproximare a valorilor si vectorilor proprii
+    if op == 2:
+      op2=1;
+      while op2 != 0:
+        print('********************************************************')  
+        print('2.Metode de aproximare a valorilor si vectorilor proprii')
+        print('********************************************************')
+        print('    2.1. Metoda rotatiilor (Jacobi, pentru valori proprii)')
+        print('    2.2. Algoritmul LU')
+        print('    2.3. Algoritmul QR')
+        print('    2.4. Polinoame Sturm')
+        print('    2.5. Metoda bisectiei')
+        print('    2.6. Algoritmul Givens + aplicare la metoda bisectiei')
+        print('    2.7. Algoritmul Danilevsky')
+        print('    2.8. Algoritul Kryilov')
+        # se vor adauga functii pe parcurs
+        print('    2.0. Incheiere submeniu 2')
+        op2=int(input("Optiune pentru submeniu 2: "))
+        if op2 == 1:
+            print('Metoda rotatiilor')
+            print('Citim matrice simetrica')
+            n = int(input('Dimensiune matrice: '))
+            A = np.zeros((n,n))
+            print('Elementele matricei sunt:')
+            for i in range(0,n):
+                for j in range(i,n):
+                  A[i][j] = float(input())
+                  A[j][i]=A[i][j]
+            V, Q =metoda_rotatiilor(n,A) 
+            # V = vectorul de valori proprii
+            # Q = matrice cu coloane vectorii proprii corespunzatori
+            print('Valorile proprii sunt:')
+            print(V)
+            print('O multime de vectori proprii este:')
+            print(Q)
+                       
+        elif op2 == 2:  
+            print('Algoritmul LU')
+            print('Citim matrice')
+            n = int(input('Dimensiune matrice: '))
+            A = np.zeros((n,n))
+            print('Elementele matricei sunt:')
+            for i in range(0,n):
+                for j in range(0,n):
+                  A[i][j] = float(input())
+            V =algoritm_LU(n,A) 
+            # V = vectorul de valori proprii
+            print('Valorile proprii sunt:')
+            print(V)
+                       
+        elif op2 == 3:
+            print('Algoritmul_QR')
+            print('Citim matrice')
+            n = int(input('Dimensiune matrice: '))
+            A = np.zeros((n,n))
+            print('Elementele matricei sunt:')
+            for i in range(0,n):
+                 for j in range(0,n):
+                      A[i][j] = float(input())
+            V =algoritm_QR(n,A) 
+            # V = vectorul de valori proprii
+            print('Valorile proprii sunt:')
+            print(V)
+           
+        elif op2 == 4:
+            print('Polinoame Sturm')
+            #Polinoame_Sturm()
+            #Citim matrice simetrica tridiagonala
+            n = int(input('dimensiune matrice: '))
+            A = np.zeros((n,n))
+            b=np.zeros((n,1))
+            c=np.zeros((n-1,1))
+            print('elementele matricei sunt')
+            print('elementele diagonalei principale sunt')
+            for i in range(0,n):
+                b[i]=float(input())
+                A[i][i]=b[i]
+            print('elementele codiagonalei sunt')    
+            for i in range(0,n-1):
+                c[i]=float(input())
+                A[i][i+1]=c[i]
+                if i>0:
+                     A[i][i-1]=c[i-1]
+            A[n-1][n-2]= c[n-2]
+            print('matricea A este')
+            print(A)
+            #Calculam polinoamele Sturm
+            x=sym.Symbol('x')
+            PS=Pol_Sturm(b,c,n)
+            print("Intoarce \n",PS)
+            ps0=PS.subs(x,0)
+            print("PS in functia polinoame Sturm",ps0)
+
+            
+           
+        elif op2 == 5:
+            print('Metoda bisectiei')
+            n = int(input('Dimensiune matrice tridiagonala: '))
+            A = np.zeros((n,n))
+            b=np.zeros((n,1))
+            c=np.zeros((n-1,1))
+            print('Elementele matricei sunt')
+            print('Elementele diagonalei principale sunt')
+            for i in range(0,n):
+                b[i]=float(input())
+                A[i][i]=b[i]
+            print('Elementele codiagonalei sunt')    
+            for i in range(0,n-1):
+                c[i]=float(input())
+                A[i][i+1]=c[i]
+                if i>0:
+                     A[i][i-1]=c[i-1]
+            A[n-1][n-2]= c[n-2]
+            print('matricea A este')
+            print(A)
+            # test apel functie N care intoarce cate valori proprii 
+            # ale matricei tridaigonale A sunt mai mici decat m dat
+            # m=0;
+            # m=float(input("Valoare m = "))
+            # nv,mv = N(n,b,c,n,m)
+            # print("Numarul valorilor proprii mai mici decat ",m," este ",nv)
+            # print("Numarul valorilor proprii mai mari decat ",m," este ",mv)
+            epsilon=float(input("Eroare admisibila aprox. val.proprii epsilon = "))
+            vect = metoda_bisectiei(n,b,c,A,epsilon)
+            print("Valori proprii: ",vect[1:n+1])
+        elif op2 == 6:
+            print('optiune 6 submeniu 2')
+             
+        elif op2 == 7:
+            print('Algoritm Danilevski')
+            n = int(input('Dimensiune matrice: '))
+            A = np.zeros((n,n))
+            print('Elementele matricei sunt:')
+            for i in range(0,n):
+                for j in range(0,n):
+                  A[i][j] = float(input())
+            print("Matricea A este:")
+            print(A)
+            C=alg_Danilevski(n, A)
+            print("Matricea rezultat este:")
+            print(C)
+        elif op2 == 8:
+            print('Algoritm Krilov')
+            n = int(input('Dimensiune matrice: '))
+            A = np.zeros((n,n))
+            print('Elementele matricei sunt:')
+            for i in range(0,n):
+                for j in range(0,n):
+                  A[i][j] = float(input())
+            print("Matricea A este:")
+            print(A)
+            C=alg_Krilov(n, A)
+            print("Matricea rezultat este:")
+            print(C)
+        elif op2 == 0:
+            print('Incheiere submeniu 2')
+        else:
+            print('Optiune invalida!')  
+                  
+    # Submeniu 3:  Metode de aproximare a solutiilor problemelor Cauchy
+    elif (op==3):
+      op3=1;
+      while op3 != 0:
+        print('*********************************************************')  
+        print('3.  Metode de aproximare a solutiilor problemelor Cauchy')
+        print('*********************************************************')
+        print('    3.1. Sirul aproximatiilor succesive (Picard)')
+        print('    3.2. Metoda Euler')
+        print('    3.3. O metoda Taylor de ordin 2')
+        print('    3.4. Runge-Kutta clasica')
+        print('    3.5. Verificare metoda Runge-Kutta pp^prim')
+        print('    3.6. Calculul coeficientilor in metoda Adams-Bashforth')
+        # se vor adauga alte functii      
+        print('    3.0. Incheiere submeniu 3')
+        op3=int(input("Optiune pentru submeniu 3: "))
+        if op3 == 1:
+            print('Sirul aproximatiilor succesive (Picard)')
+            # calculam simbolic sirul de aproximatii succesive 
+            # phi_0, phi_1, ..., phi_k
+            k=int(input("Numarul de aproximatii calculate "))
+            aproximatii_succesive(k)
+                    
+        elif op3 == 2:  
+            print(' Metoda Euler explicita')
+            metoda_Euler_explicita()
+           
+        elif op3 == 3:
+            print("Metoda Taylor de ordin 2 (comparatie cu metoda Euler)")
+            metoda_Taylor_2()
+           
+        elif op3 == 4:            
+            print('Metoda Runge-Kutta clasica (comparatie cu metoda Euler')
+            metoda_Runge_Kutta()
+           
+        elif op3 == 5:
+            print('Verificare metoda Runge-Kutta pp^prim')
+            verificare_RK_p_p_prim()
+            
+        elif op3 == 6:
+            print('Calculul coeficientilor in metoda Adams-Bashforth')
+            coeficienti_metoda_Adams_Bashforth()
+        elif op3 == 0:
+            print('Incheiere submeniu 3')
+        else:
+            print('Optiune invalida in submeniu 3!')
+    elif op == 0:
+        print('Incheiere program. Bye! Bye!')
+    else:
+        print('Optiune invalida in programul principal')
+#************************        
+# end program principal
+#************************        
